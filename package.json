@@ -1,0 +1,27 @@
+{
+  "name": "bodypart",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "watch": "esbuild test.ts --bundle --sourcemap --outfile=test.js --format=esm --watch",
+    "build": "esbuild test.ts --bundle --sourcemap --outfile=test.js --format=esm"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@cornerstonejs/core": "^1.2.7",
+    "@cornerstonejs/dicom-image-loader": "^1.2.7",
+    "@tensorflow/tfjs": "^4.8.0",
+    "cornerstone-core": "^2.6.1",
+    "cornerstone-wado-image-loader": "^4.13.2",
+    "dcmjs": "^0.29.8",
+    "dicom-parser": "^1.8.21",
+    "esbuild": "^0.18.10"
+  },
+  "devDependencies": {
+    "@types/node": "^20.3.2"
+  }
+}
