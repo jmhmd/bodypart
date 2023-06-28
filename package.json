@@ -6,9 +6,9 @@
   "type": "module",
   "scripts": {
     "prepare": "rm -rf ./dist && mkdir ./dist && cp -r ./tfjs/full-tcga ./dist/full-tcga && cp ./src/index.html ./dist/index.html",
-    "watch": "pnpm run prepare && esbuild ./src/test.ts --bundle --sourcemap --outfile=./dist/test.js --format=esm --watch",
+    "watch": "npm run prepare && esbuild ./src/test.ts --bundle --sourcemap --outfile=./dist/test.js --format=esm --watch",
     "serve": "pnpx http-server --port 8085 ./dist",
-    "build": "pnpm run prepare && esbuild ./src/test.ts --bundle --sourcemap --outfile=./dist/test.js --format=esm --minify"
+    "build": "npm run prepare && esbuild ./src/test.ts --bundle --sourcemap --outfile=./dist/test.js --format=esm --minify"
   },
   "keywords": [],
   "author": "",
