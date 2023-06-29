@@ -69,10 +69,10 @@ document.addEventListener("change", async (e: Event) => {
   }
 
   // Assign a static imageId for cornerstone to use
-  const imageId = `dicomfile:1`;
+  const imageId = `dicomfile:${Date.now()}`;
 
   // Load the image, decompress, return image object with raw pixel data
-  const image = await cornerstone.loadAndCacheImage(imageId, {
+  const image = await cornerstone.loadImage(imageId, {
     loader: (index: string) => {
       return new Promise((resolve, reject) => {
         // const file = fileCache[`dicomfile:${index}`];
@@ -113,12 +113,14 @@ document.addEventListener("change", async (e: Event) => {
   ]);
 
   // Resize the tensor to the required 256x256
-  let resizedImageTensor = tf.image.resizeBilinear(tensor, [256, 256]);
+  let resizedImageTensor = tf.tidy(() =>
+    tf.image.resizeBilinear(tensor, [256, 256])
+  );
 
   // The model accepts tensors with shape [null, 256, 256, 1], which as far as I
   // understand, the 'null' means any number of images, with size 256x256, and 1
   // channel (greyscale)
-  resizedImageTensor = tf.expandDims(resizedImageTensor, 0);
+  resizedImageTensor = tf.tidy(() => tf.expandDims(resizedImageTensor, 0));
 
   // Draw processed image to canvas. To do this, we take our resized tensor and
   // convert it back to a flat array of pixel values 0-255, then just write them
@@ -144,10 +146,15 @@ document.addEventListener("change", async (e: Event) => {
     // manually for it to work.
   });
 
+  // Warm up model
+  const warmupResult = model.predict(tf.zeros([1, 256, 256, 1]));
+  warmupResult.dataSync();
+  warmupResult.dispose();
+
   // This normalizes the pixel value range from [0, 255] to [-1, 1], which is
   // what the model requires.
-  resizedImageTensor = resizedImageTensor.div(tf.scalar(127.5));
-  resizedImageTensor = resizedImageTensor.sub(tf.scalar(1));
+  resizedImageTensor = tf.tidy(() => resizedImageTensor.div(tf.scalar(127.5)));
+  resizedImageTensor = tf.tidy(() => resizedImageTensor.sub(tf.scalar(1)));
 
   const startInference = Date.now();
   const output = model.predict(resizedImageTensor);
@@ -157,14 +164,13 @@ document.addEventListener("change", async (e: Event) => {
     Used ${tf.getBackend()} backend
   `;
 
-  console.log(output);
   // @ts-ignore
   const outputArray = output.arraySync();
   const [chest, abd, pelv] = outputArray[0];
 
   // Print results
   if (outputDivEl) {
-    outputDivEl.innerHTML = `
+    outputDivEl.innerHTML += `
     <pre>
       Chest: ${chest}
       Abdomen: ${abd}
@@ -173,4 +179,8 @@ document.addEventListener("change", async (e: Event) => {
     `;
   }
   console.log(output.toString());
+
+  // Clean up?
+  output.dispose();
+  resizedImageTensor.dispose();
 });
