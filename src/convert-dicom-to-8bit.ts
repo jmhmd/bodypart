@@ -11,11 +11,11 @@ function clampArray(array: number[], min: number, max: number) {
 }
 
 export function convert_dicom_to_8bit(
-  byteArray: number[],
-  width: number,
-  level: number,
-  imsize = [224, 224],
-  clip = true
+  byteArray: number[]
+  // width: number,
+  // level: number,
+  // imsize = [224, 224],
+  // clip = true
 ) {
   // Given a DICOM file, window specifications, and image size,
   // return the image as a Numpy array scaled to [0,255] of the specified size.

@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "prepare": "rm -rf ./dist && mkdir ./dist && cp -r ./tfjs/full-tcga ./dist/full-tcga && cp ./src/index.html ./dist/index.html",
+    "prepare": "rm -rf ./dist && mkdir ./dist && cp -r ./tfjs-models ./dist/tfjs-models && cp ./src/index.html ./dist/index.html",
     "watch": "npm run prepare && esbuild ./src/test.ts --bundle --sourcemap --outfile=./dist/test.js --format=esm --watch",
     "serve": "pnpx http-server --port 8085 ./dist",
     "build": "npm run prepare && esbuild ./src/test.ts --bundle --sourcemap --outfile=./dist/test.js --format=esm --minify"
