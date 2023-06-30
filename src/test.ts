@@ -21,9 +21,6 @@ const outputDivEl: HTMLDivElement | null = document.getElementById(
 const modelSelectEl: HTMLSelectElement | null = document.getElementById(
   "model-select"
 ) as HTMLSelectElement;
-const logEl: HTMLDivElement | null = document.querySelector(
-  "#log pre"
-) as HTMLDivElement;
 
 // Available models
 const modelPaths = {
@@ -49,24 +46,26 @@ modelSelectEl.addEventListener(
   () => (modelPath = modelSelectEl.value)
 );
 
-const canvas = document.createElement("canvas");
-canvas.height = 256;
-canvas.width = 256;
-document.body.appendChild(canvas);
-let previewCanvasContext = canvas.getContext("2d");
-
 document.addEventListener("change", async (e: Event) => {
-  // Clear preview canvas
-  if (!previewCanvasContext) {
-    throw new Error("Unable to get canvas context");
-  }
-  previewCanvasContext.clearRect(0, 0, canvas.width, canvas.height);
-
   // Grab input file
   const inputfile = inputfileEl && inputfileEl.files?.[0];
-  if (!inputfile) {
-    throw new Error("No input file found.");
+  if (!inputfileEl.value || !inputfile) {
+    return;
   }
+
+  // Create output container and preview canvas
+  const resultDivEl = document.createElement("div");
+  resultDivEl.style.clear = "left";
+  const canvas = document.createElement("canvas");
+  canvas.style.float = "left";
+  canvas.height = 256;
+  canvas.width = 256;
+  resultDivEl.appendChild(canvas);
+  const resultPreEl = document.createElement("pre");
+  resultDivEl.appendChild(resultPreEl);
+  outputDivEl.appendChild(resultDivEl);
+
+  let previewCanvasContext = canvas.getContext("2d");
 
   // Assign a static imageId for cornerstone to use
   const imageId = `dicomfile:${Date.now()}`;
@@ -159,7 +158,7 @@ document.addEventListener("change", async (e: Event) => {
   const startInference = Date.now();
   const output = model.predict(resizedImageTensor);
   const inferenceTime = Date.now() - startInference;
-  logEl.innerHTML += `
+  resultPreEl.innerHTML += `
     Inference time: ${inferenceTime}ms
     Used ${tf.getBackend()} backend
   `;
@@ -170,17 +169,16 @@ document.addEventListener("change", async (e: Event) => {
 
   // Print results
   if (outputDivEl) {
-    outputDivEl.innerHTML += `
-    <pre>
+    resultPreEl.innerHTML += `
       Chest: ${chest}
       Abdomen: ${abd}
       Pelvis: ${pelv}
-    </pre>
     `;
   }
   console.log(output.toString());
 
-  // Clean up?
+  // Clean up? Not sure if the .dispose() calls are necessary
+  inputfileEl.value = "";
   output.dispose();
   resizedImageTensor.dispose();
 });
