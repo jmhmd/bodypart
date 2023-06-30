@@ -45,8 +45,41 @@ modelSelectEl.addEventListener(
   "change",
   () => (modelPath = modelSelectEl.value)
 );
+let model: tf.LayersModel;
 
-document.addEventListener("change", async (e: Event) => {
+async function loadAndWarmModel() {
+  // Load the desired model
+  const startLoad = Date.now();
+  model = await tf.loadLayersModel(modelPath, {
+    // strict: false, Was using this option to ignore an error that was being
+    // thrown when I was first trying to load the model that complained about
+    // mismatched layer/weight names. It turns out the tensorflowjs_converter
+    // was adding a _1 to the layer names for some reason and I had to fix those
+    // manually for it to work.
+  });
+  const loadTime = Date.now() - startLoad;
+
+  // Warm up model
+  const startWarm = Date.now();
+  const warmupResult = model.predict(tf.zeros([1, 256, 256, 1]));
+  warmupResult.dataSync();
+  warmupResult.dispose();
+  const warmTime = Date.now() - startWarm;
+  outputDivEl?.insertAdjacentHTML(
+    "afterbegin",
+    `
+  <pre style="clear: left">
+    Loaded model ${modelPath}
+    Load time: ${loadTime}ms
+    Warm time: ${warmTime}ms
+  </pre>
+  `
+  );
+}
+await loadAndWarmModel();
+modelSelectEl.addEventListener("change", loadAndWarmModel);
+
+inputfileEl.addEventListener("change", async (e: Event) => {
   // Grab input file
   const inputfile = inputfileEl && inputfileEl.files?.[0];
   if (!inputfileEl.value || !inputfile) {
@@ -63,7 +96,7 @@ document.addEventListener("change", async (e: Event) => {
   resultDivEl.appendChild(canvas);
   const resultPreEl = document.createElement("pre");
   resultDivEl.appendChild(resultPreEl);
-  outputDivEl.appendChild(resultDivEl);
+  outputDivEl.prepend(resultDivEl);
 
   let previewCanvasContext = canvas.getContext("2d");
 
@@ -135,20 +168,6 @@ document.addEventListener("change", async (e: Event) => {
       }
     }
   }
-
-  // Load the desired model
-  const model = await tf.loadLayersModel(modelPath, {
-    // strict: false, Was using this option to ignore an error that was being
-    // thrown when I was first trying to load the model that complained about
-    // mismatched layer/weight names. It turns out the tensorflowjs_converter
-    // was adding a _1 to the layer names for some reason and I had to fix those
-    // manually for it to work.
-  });
-
-  // Warm up model
-  const warmupResult = model.predict(tf.zeros([1, 256, 256, 1]));
-  warmupResult.dataSync();
-  warmupResult.dispose();
 
   // This normalizes the pixel value range from [0, 255] to [-1, 1], which is
   // what the model requires.
