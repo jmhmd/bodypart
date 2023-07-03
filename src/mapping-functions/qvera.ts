@@ -209,10 +209,7 @@ export function kernel(dataSet: DataSet) {
     kernel = "Lung";
   } else if (containsIgnoreCase(kernelTagValue, "Bone")) {
     kernel = "Bone";
-  } else if (
-    containsIgnoreCase(kernelTagValue, "Soft") ||
-    containsIgnoreCase(kernelTagValue, "ST")
-  ) {
+  } else {
     kernel = "Soft";
   }
 
