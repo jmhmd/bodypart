@@ -6,6 +6,7 @@ import cornerstone from "cornerstone-core";
 import cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import * as tf from "@tensorflow/tfjs";
 import { convert_dicom_to_8bit } from "./convert-dicom-to-8bit";
+import { crop_image_array } from "./crop-image-array";
 
 cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
 cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
@@ -21,6 +22,12 @@ const outputDivEl: HTMLDivElement | null = document.getElementById(
 const modelSelectEl: HTMLSelectElement | null = document.getElementById(
   "model-select"
 ) as HTMLSelectElement;
+const cropCheckBoxEl: HTMLInputElement | null = document.getElementById(
+  "crop-image"
+) as HTMLInputElement;
+const thresholdInputEl: HTMLInputElement | null = document.getElementById(
+  "crop-threshold"
+) as HTMLInputElement;
 
 // Available models
 const modelPaths = {
@@ -137,22 +144,70 @@ inputfileEl.addEventListener("change", async (e: Event) => {
     // [256, 256]
   );
 
-  // Convert the flat array of pixel values to a single channel 3D tensor
-  const tensor = tf.tensor3d(image_8bit_flat_array as number[], [
+  let x1 = 0,
+    y1 = 0,
+    x2 = 1,
+    y2 = 1;
+  if (cropCheckBoxEl.checked) {
+    // Find crop bounding box to clip dead space
+    let [left, top, right, bottom] = crop_image_array(
+      image_8bit_flat_array,
+      image.width,
+      image.height,
+      Number(thresholdInputEl.value) // threshold
+    );
+
+    console.log(left, top, right, bottom);
+    // Make sure it maintains square aspect ratio
+    if (right - left !== bottom - top) {
+      if (right - left < bottom - top) {
+        const diff = bottom - top - (right - left);
+        bottom -= diff / 2;
+        top += diff / 2;
+      } else {
+        const diff = right - left - (bottom - top);
+        right -= diff / 2;
+        left += diff / 2;
+      }
+    }
+
+    x1 = left / image.width;
+    y1 = top / image.height;
+    x2 = right / image.width;
+    y2 = bottom / image.height;
+  }
+
+  console.log("cropped:", x1, y1, x2, y2);
+
+  // Convert the flat array of pixel values to a single channel 4D tensor
+  const tensor = tf.tensor4d(image_8bit_flat_array as number[], [
+    1,
     image.width,
     image.height,
     1,
   ]);
-
-  // Resize the tensor to the required 256x256
+  // Crop and resize. This for some reason uses (y, x) coords instead of (x, y)
   let resizedImageTensor = tf.tidy(() =>
-    tf.image.resizeBilinear(tensor, [256, 256])
+    tf.image.cropAndResize(
+      tensor,
+      // tf.tensor2d([[y1, x1, y2, x2]], [1, 4]),
+      // tf.tensor2d([[0, 0, 1, 1]], [1, 4]),
+      tf.tensor2d([[y1, x1, y2, x2]], [1, 4]),
+      [0],
+      [256, 256],
+      "bilinear"
+    )
   );
+
+  // // Resize the tensor to the required 256x256
+  // let resizedImageTensor = tf.tidy(() =>
+  //   tf.image.resizeBilinear(tensor, [256, 256])
+  // );
 
   // The model accepts tensors with shape [null, 256, 256, 1], which as far as I
   // understand, the 'null' means any number of images, with size 256x256, and 1
   // channel (greyscale)
-  resizedImageTensor = tf.tidy(() => tf.expandDims(resizedImageTensor, 0));
+  // resizedImageTensor = tf.tidy(() => tf.expandDims(resizedImageTensor, 0));
 
   // Draw processed image to canvas. To do this, we take our resized tensor and
   // convert it back to a flat array of pixel values 0-255, then just write them
@@ -197,7 +252,6 @@ inputfileEl.addEventListener("change", async (e: Event) => {
   console.log(output.toString());
 
   // Clean up? Not sure if the .dispose() calls are necessary
-  inputfileEl.value = "";
   output.dispose();
   resizedImageTensor.dispose();
 });

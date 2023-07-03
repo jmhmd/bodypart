@@ -9,6 +9,12 @@
     <select id="model-select"></select>
     <br><br>
     <input type="file" id="inputfile" placeholder="../test-dicom/anon/pe-after-surgery/LUNG/57.dcm">
+    <br><br>
+    <label for="crop-image">Try to crop image</label>
+    <input type="checkbox" id="crop-image" checked>
+    <br>
+    <label for="crop-threshold">Crop threshold</label>
+    <input type="number" min="0" max="1000" id="crop-threshold" value="10">
 
     <div id="output"></div>
     <script type="module" src="test.js"></script>
