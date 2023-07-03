@@ -7,6 +7,7 @@ import cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import * as tf from "@tensorflow/tfjs";
 import { convert_dicom_to_8bit } from "./convert-dicom-to-8bit";
 import { crop_image_array } from "./crop-image-array";
+import { constructResponse, constructSeriesDescription } from "./mapping-functions/qvera";
 
 cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
 cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
@@ -241,12 +242,18 @@ inputfileEl.addEventListener("change", async (e: Event) => {
   const outputArray = output.arraySync();
   const [chest, abd, pelv] = outputArray[0];
 
+  // Get normalized series description from dicom tags
+  const seriesDescription = constructSeriesDescription(image.data);
+
   // Print results
   if (outputDivEl) {
     resultPreEl.innerHTML += `
       Chest: ${chest}
       Abdomen: ${abd}
       Pelvis: ${pelv}
+
+      Normalized series description (dicom tags only):
+      ${seriesDescription}
     `;
   }
   console.log(output.toString());
